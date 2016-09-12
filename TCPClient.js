@@ -18,7 +18,16 @@ function TCPClient(serverHost, serverPort) {
 	var socket = this.socket = new net.Socket();
 	socket.setEncoding('hex');
 	this.lastData = '';
-	socket.on('data', function(data) {
+	socket.on('data', function (data) {
+		var frames = distillFrames(data);
+		if(typeof _this.dataHandle == 'function' && frames.length > 0){
+			_this.dataHandle.call(null, frames);
+		}
+	});
+	/**
+	 * 截取完整帧
+	 */
+	function distillFrames(data){
 		data = _this.lastData + data.toLowerCase();
 		var startIndex;
 		var frames = [];
@@ -35,9 +44,9 @@ function TCPClient(serverHost, serverPort) {
 				break;
 			}
 			var frame = data.slice(0, frameLen * 2);
-			//校验。帧内容错误，那么从下一个2626开始截取
+			//校验。帧内容不符，那么从下一个2626开始截取
 			if (frame.endsWith('0b') == false) {
-				_onerror(new Error('Received a frame whose start or end is wrong, frame is ' + frame + '.'));
+				// _onerror(new Error('Received a frame whose end is not 0b, frame is ' + frame + '.'));
 				data = data.slice(1);
 				continue;
 			}
@@ -53,12 +62,9 @@ function TCPClient(serverHost, serverPort) {
 			frames.push(frame);
 			data = data.slice(frameLen * 2);
 		}
-		if(frames.length > 0 && typeof _this.dataHandle == 'function'){
-			_this.dataHandle.call(null, frames);
-		}
 		_this.lastData = data;
-	});
-
+		return frames;
+	}
 	function _onerror(err) {
 		if (typeof _this.errHandle == 'function') {
 			_this.errHandle.call(null, err);
