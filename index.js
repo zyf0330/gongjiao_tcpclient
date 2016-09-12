@@ -11,19 +11,30 @@ var RW = require('./RW');
 var logDir = 'log';
 function getLogWriterStream(filepath){
 	return function () {
-		return fs.createWriteStream(filepath, {flags: 'a'});
+		var stream = fs.createWriteStream(filepath, {flags: 'a'});
+		var _write = stream.write;
+		stream.write = function () {
+			var chunk = arguments[0];
+			if(chunk != null){
+				chunk = '[' + new Date().toLocaleString() + '] ' + chunk;
+			}
+			var args = [chunk, Array.prototype.slice.call(arguments, 1)];
+			_write.apply(stream, args);
+		}
+		return stream;
 	}
 }
 process.__defineGetter__('stdout', getLogWriterStream(logDir + '/info.log'));
 process.__defineGetter__('stderr', getLogWriterStream(logDir + '/error.log'));
 
 var serverAddress = '218.201.35.212', serverPort = 6059;
+var lifetime = 3 * 12 * 60 * 60 * 1000;
+
 var client = new TCPClient(serverAddress, serverPort);
 var writer = new RW.FileWriter('data', 'file', {
 	log: true,
 	limit: 1024 * 10
 });
-var lifetime = 3 * 12 * 60 * 60 * 1000;
 client.dataHandle = function (frames) {
 	writer.write('\n' + frames.join('\n'));
 }
