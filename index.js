@@ -40,7 +40,7 @@ var lifetime = 3 * 12 * 60 * 60 * 1000;
 var client = new TCPClient(serverAddress, serverPort);
 var writer = new RW.FileWriter('data', 'file', {
     log: true,
-    limit: 1024 * 10
+    limit: 1024 * 100
 });
 client.dataHandle = function(frames) {
     writer.write('\n' + frames.join('\n'));
